@@ -1,0 +1,1116 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ApexSignal - Crypto Quantitative AI Trading Terminal</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              dark: '#080a0f',
+              panel: '#0e121a',
+              card: '#141a24',
+              border: '#1f2838',
+              accent: '#38bdf8'
+            },
+            bull: {
+              DEFAULT: '#00e676',
+              soft: 'rgba(0, 230, 118, 0.12)',
+              glow: 'rgba(0, 230, 118, 0.3)'
+            },
+            bear: {
+              DEFAULT: '#ff3366',
+              soft: 'rgba(255, 51, 102, 0.12)',
+              glow: 'rgba(255, 51, 102, 0.3)'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #080a0f;
+      color: #e2e8f0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #1f2838;
+      border-radius: 9999px;
+    }
+    .neon-border-bull {
+      box-shadow: 0 0 15px rgba(0, 230, 118, 0.2);
+    }
+    .neon-border-bear {
+      box-shadow: 0 0 15px rgba(255, 51, 102, 0.2);
+    }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(0.99); }
+    }
+    .pulse-indicator {
+      animation: pulseGlow 2.5s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased select-none">
+
+  <!-- Top Live Markets Marquee Ticker -->
+  <header class="bg-brand-panel border-b border-brand-border px-3 py-1.5 flex items-center text-xs overflow-hidden">
+    <div class="flex items-center gap-2 mr-3 flex-shrink-0 text-[11px] font-mono uppercase text-gray-400">
+      <span class="w-2 h-2 rounded-full bg-bull animate-ping"></span>
+      <span class="text-white font-bold">24H Live</span>
+    </div>
+    <div id="topTickerTrack" class="flex gap-6 overflow-x-auto custom-scrollbar whitespace-nowrap py-0.5">
+      <!-- Injected by JS -->
+    </div>
+  </header>
+
+  <!-- Main Navigation Header -->
+  <nav class="bg-brand-panel/90 backdrop-blur sticky top-0 z-40 border-b border-brand-border px-3 sm:px-6 py-2.5 flex items-center justify-between">
+    <!-- Brand Logo -->
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-accent to-bull flex items-center justify-center text-black font-black text-sm shadow-md">
+        <i class="fa-solid fa-chart-line"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-extrabold text-sm sm:text-base tracking-wide text-white">APEX<span class="text-bull">SIGNAL</span></span>
+          <span class="bg-brand-border text-brand-accent text-[9px] font-mono px-1.5 py-0.5 rounded font-bold">PRO TERMINAL</span>
+        </div>
+        <p class="text-[10px] text-gray-400 font-mono hidden sm:block">Quantitative AI Crypto Buy/Sell Indicator</p>
+      </div>
+    </div>
+
+    <!-- Right Controls: Coin Selector, Timeframe, Sound -->
+    <div class="flex items-center gap-2">
+      <!-- Pair Selector Dropdown -->
+      <div class="relative">
+        <select id="coinSelect" class="bg-brand-card hover:bg-brand-border border border-brand-border text-white text-xs sm:text-sm font-mono font-bold rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-bull transition cursor-pointer">
+          <option value="BTCUSDT">BTC / USDT</option>
+          <option value="ETHUSDT">ETH / USDT</option>
+          <option value="SOLUSDT">SOL / USDT</option>
+          <option value="BNBUSDT">BNB / USDT</option>
+          <option value="DOGEUSDT">DOGE / USDT</option>
+          <option value="XRPUSDT">XRP / USDT</option>
+        </select>
+      </div>
+
+      <!-- Timeframe Buttons -->
+      <div class="hidden md:flex bg-brand-card rounded-lg p-0.5 border border-brand-border font-mono text-xs">
+        <button class="tf-btn px-2 py-1 rounded bg-bull text-black font-bold" data-tf="1m">1m</button>
+        <button class="tf-btn px-2 py-1 rounded text-gray-400 hover:text-white" data-tf="5m">5m</button>
+        <button class="tf-btn px-2 py-1 rounded text-gray-400 hover:text-white" data-tf="15m">15m</button>
+        <button class="tf-btn px-2 py-1 rounded text-gray-400 hover:text-white" data-tf="1h">1h</button>
+      </div>
+
+      <!-- Sound Toggle Button -->
+      <button id="soundToggleBtn" title="Toggle audio alert" class="w-8 h-8 rounded-lg bg-brand-card hover:bg-brand-border border border-brand-border flex items-center justify-center text-bull transition">
+        <i class="fa-solid fa-volume-high text-xs"></i>
+      </button>
+
+      <!-- Connection Status Badge -->
+      <div id="connStatusBadge" class="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 font-mono text-[10px]">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="connStatusText">LIVE API</span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="flex-1 p-2 sm:p-4 max-w-[1600px] mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
+    
+    <!-- LEFT COLUMN: AI Quantitative Signal & Targets Panel (4 cols) -->
+    <div class="lg:col-span-4 flex flex-col gap-3">
+      
+      <!-- Primary Automated Buy/Sell Signal Card -->
+      <div id="mainSignalBox" class="bg-brand-panel border border-bull/40 rounded-2xl p-4 sm:p-5 neon-border-bull transition-all duration-300 relative overflow-hidden">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-brand-border">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-bull animate-ping"></span>
+            <span class="text-xs font-bold uppercase tracking-wider text-gray-300">Algorithmic Confluence Signal</span>
+          </div>
+          <span id="activeTfBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-brand-card border border-brand-border text-gray-300">TF: 1m</span>
+        </div>
+
+        <!-- Big Signal Display -->
+        <div class="py-4 text-center">
+          <div id="signalBanner" class="text-3xl sm:text-4xl font-black font-mono tracking-tight text-bull flex items-center justify-center gap-2">
+            <i class="fa-solid fa-circle-arrow-up"></i> STRONG BUY
+          </div>
+          <p id="signalNarrative" class="text-xs text-gray-400 mt-1.5 font-medium">Momentum indicators in high bullish agreement</p>
+
+          <!-- Confidence Progress Meter -->
+          <div class="mt-4 bg-brand-card p-3 rounded-xl border border-brand-border">
+            <div class="flex justify-between items-center text-xs font-mono mb-1.5">
+              <span class="text-gray-400">Signal Confidence</span>
+              <span id="confidencePercentage" class="font-extrabold text-bull text-sm">89%</span>
+            </div>
+            <div class="w-full h-2 bg-brand-dark rounded-full overflow-hidden">
+              <div id="confidenceBar" class="h-full bg-gradient-to-r from-bull to-brand-accent transition-all duration-500 rounded-full" style="width: 89%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trade Setup Parameters (Entry, SL, TP1, TP2) -->
+        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-brand-border font-mono text-xs">
+          <div class="bg-brand-card p-2.5 rounded-xl border border-brand-border">
+            <span class="text-[10px] text-gray-400 uppercase tracking-wider block">Recommended Entry</span>
+            <span id="entryTargetVal" class="text-sm font-bold text-white">$67,410.00</span>
+          </div>
+          <div class="bg-brand-card p-2.5 rounded-xl border border-brand-border">
+            <span class="text-[10px] text-gray-400 uppercase tracking-wider block">Stop Loss (SL)</span>
+            <span id="slTargetVal" class="text-sm font-bold text-bear">$66,850.00</span>
+          </div>
+          <div class="bg-brand-card p-2.5 rounded-xl border border-brand-border">
+            <span class="text-[10px] text-gray-400 uppercase tracking-wider block">Target 1 (TP1)</span>
+            <span id="tp1TargetVal" class="text-sm font-bold text-bull">$68,120.00</span>
+          </div>
+          <div class="bg-brand-card p-2.5 rounded-xl border border-brand-border">
+            <span class="text-[10px] text-gray-400 uppercase tracking-wider block">Target 2 (TP2)</span>
+            <span id="tp2TargetVal" class="text-sm font-bold text-bull">$68,900.00</span>
+          </div>
+        </div>
+
+        <!-- Risk to Reward Badge -->
+        <div class="mt-3 flex items-center justify-between bg-brand-dark px-3 py-2 rounded-xl text-xs font-mono border border-brand-border">
+          <span class="text-gray-400">Risk / Reward (R:R):</span>
+          <span id="rrRatioVal" class="text-brand-accent font-bold">1 : 2.45</span>
+        </div>
+      </div>
+
+      <!-- Technical Indicator Confluence Matrix -->
+      <div class="bg-brand-panel border border-brand-border rounded-2xl p-4">
+        <h3 class="text-xs uppercase font-bold tracking-wider text-gray-400 mb-3 flex items-center justify-between">
+          <span>Technical Indicators Matrix</span>
+          <i class="fa-solid fa-microchip text-brand-accent"></i>
+        </h3>
+
+        <div class="space-y-2 text-xs font-mono">
+          <!-- RSI -->
+          <div class="flex items-center justify-between p-2 rounded-lg bg-brand-card border border-brand-border">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+              <span class="text-gray-300">RSI (14)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="rsiNum" class="font-bold text-bull">38.4</span>
+              <span id="rsiPill" class="text-[10px] px-1.5 py-0.5 rounded bg-bull-soft text-bull border border-bull/20 font-bold">Bullish</span>
+            </div>
+          </div>
+
+          <!-- MACD -->
+          <div class="flex items-center justify-between p-2 rounded-lg bg-brand-card border border-brand-border">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+              <span class="text-gray-300">MACD (12, 26, 9)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="macdNum" class="font-bold text-bull">+124.5</span>
+              <span id="macdPill" class="text-[10px] px-1.5 py-0.5 rounded bg-bull-soft text-bull border border-bull/20 font-bold">Golden Cross</span>
+            </div>
+          </div>
+
+          <!-- EMA Trend -->
+          <div class="flex items-center justify-between p-2 rounded-lg bg-brand-card border border-brand-border">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-yellow-400"></span>
+              <span class="text-gray-300">EMA Trend (20/50)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="emaPill" class="text-[10px] px-1.5 py-0.5 rounded bg-bull-soft text-bull border border-bull/20 font-bold">Bullish Alignment</span>
+            </div>
+          </div>
+
+          <!-- Bollinger Bands -->
+          <div class="flex items-center justify-between p-2 rounded-lg bg-brand-card border border-brand-border">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+              <span class="text-gray-300">Bollinger Bands</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="bbPill" class="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-300 border border-brand-border">Support Bounce</span>
+            </div>
+          </div>
+
+          <!-- ATR Volatility -->
+          <div class="flex items-center justify-between p-2 rounded-lg bg-brand-card border border-brand-border">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span class="text-gray-300">ATR Volatility</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="atrVal" class="text-white font-bold">1.45%</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-accent/10 text-brand-accent border border-brand-accent/20">Optimal Range</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Strategy Checklist Notes -->
+        <div class="mt-3 pt-3 border-t border-brand-border space-y-1.5 text-[11px] text-gray-400">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-check text-bull text-xs"></i>
+            <span id="reason1">Price holding firmly above dynamic 50-EMA support</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-check text-bull text-xs"></i>
+            <span id="reason2">Positive divergence observed on RSI momentum</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: Interactive Candlestick Chart & Historical Logs (8 cols) -->
+    <div class="lg:col-span-8 flex flex-col gap-3">
+      
+      <!-- Chart Container Card -->
+      <div class="bg-brand-panel border border-brand-border rounded-2xl p-3 sm:p-4 flex flex-col gap-3">
+        
+        <!-- Live Price Header & Ticker Metrics -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-brand-border">
+          <div class="flex items-center gap-3">
+            <div class="font-mono">
+              <div class="flex items-center gap-2">
+                <h2 id="pairHeading" class="text-lg sm:text-2xl font-black text-white">BTC/USDT</h2>
+                <span id="priceDeltaBadge" class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-bull-soft text-bull border border-bull/20">+3.12%</span>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span id="livePriceDisplay" class="text-2xl sm:text-3xl font-black font-mono text-bull tracking-tight">$67,420.50</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Controls: Chart Type, Force Scan -->
+          <div class="flex items-center gap-2 font-mono text-xs">
+            <button id="chartStyleToggle" class="bg-brand-card hover:bg-brand-border px-3 py-1.5 rounded-lg border border-brand-border text-gray-300 flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-chart-simple text-brand-accent"></i>
+              <span id="chartTypeTitle">Candles</span>
+            </button>
+            <button id="forceScanBtn" class="bg-brand-card hover:bg-brand-border px-3 py-1.5 rounded-lg border border-brand-border text-bull flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-rotate-right"></i>
+              <span>Scan Market</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Candlestick / Line Canvas Area -->
+        <div class="relative w-full h-[320px] sm:h-[400px] bg-brand-dark rounded-xl overflow-hidden border border-brand-border">
+          <!-- Canvas Top Overlay Live Bar -->
+          <div class="absolute top-2 left-3 z-10 text-[10px] sm:text-xs font-mono text-gray-400 flex flex-wrap gap-3 pointer-events-none">
+            <span>O: <b id="barOpen" class="text-white">--</b></span>
+            <span>H: <b id="barHigh" class="text-bull">--</b></span>
+            <span>L: <b id="barLow" class="text-bear">--</b></span>
+            <span>C: <b id="barClose" class="text-white">--</b></span>
+          </div>
+
+          <!-- Chart Indicator Legend -->
+          <div class="absolute top-2 right-3 z-10 text-[10px] font-mono flex gap-2 pointer-events-none">
+            <span class="text-yellow-400">● EMA 20</span>
+            <span class="text-blue-400">● EMA 50</span>
+            <span class="text-bull font-bold">▲ Buy</span>
+            <span class="text-bear font-bold">▼ Sell</span>
+          </div>
+
+          <!-- Main Canvas -->
+          <canvas id="tradingCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+        </div>
+
+        <!-- 24-Hour Statistical Summary Strip -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono text-center pt-1">
+          <div class="bg-brand-card p-2 rounded-xl border border-brand-border">
+            <span class="text-[10px] text-gray-400 block">24H High</span>
+            <span id="statHigh24" class="font-bold text-white">$68,910.00</span>
+          </div>
+          <div class="bg-brand-card p-2 rounded-xl border border-brand-border">
+            <span class="text-[10px] text-gray-400 block">24H Low</span>
+            <span id="statLow24" class="font-bold text-white">$65,150.00</span>
+          </div>
+          <div class="bg-brand-card p-2 rounded-xl border border-brand-border">
+            <span class="text-[10px] text-gray-400 block">24H Volume</span>
+            <span id="statVol24" class="font-bold text-white">48,210 BTC</span>
+          </div>
+          <div class="bg-brand-card p-2 rounded-xl border border-brand-border">
+            <span class="text-[10px] text-gray-400 block">Latency</span>
+            <span class="font-bold text-emerald-400">18ms (Realtime)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Historical Signal Log -->
+      <div class="bg-brand-panel border border-brand-border rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-list-check text-brand-accent text-sm"></i>
+            <h3 class="text-xs uppercase font-bold tracking-wider text-gray-300">Live Triggered Signal Log</h3>
+          </div>
+          <button id="clearLogsButton" class="text-[11px] font-mono text-gray-400 hover:text-white transition">Clear Logs</button>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar max-h-48 overflow-y-auto">
+          <table class="w-full text-left text-xs font-mono whitespace-nowrap">
+            <thead class="bg-brand-card text-gray-400 text-[10px] uppercase border-b border-brand-border sticky top-0">
+              <tr>
+                <th class="p-2">Timestamp</th>
+                <th class="p-2">Pair</th>
+                <th class="p-2">Signal</th>
+                <th class="p-2">Entry Price</th>
+                <th class="p-2">Stop Loss</th>
+                <th class="p-2">Take Profit</th>
+                <th class="p-2">Status</th>
+              </tr>
+            </thead>
+            <tbody id="signalLogTbody" class="divide-y divide-brand-border text-gray-300">
+              <!-- Logs injected here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Pop-up Signal Notification Toast -->
+  <div id="toastNotification" class="fixed bottom-4 right-4 z-50 transition-all duration-300 transform translate-y-24 opacity-0 pointer-events-none">
+    <div id="toastContent" class="flex items-center gap-3 bg-brand-card border border-bull text-white px-4 py-3 rounded-xl shadow-2xl">
+      <div id="toastIconBox" class="w-8 h-8 rounded-lg bg-bull/20 text-bull flex items-center justify-center font-bold">
+        <i class="fa-solid fa-bolt"></i>
+      </div>
+      <div>
+        <h4 id="toastHeader" class="font-bold text-xs">New Strong Signal!</h4>
+        <p id="toastBody" class="text-[11px] text-gray-300">BTC/USDT Buy triggered at $67,420</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* Audio Synthesizer via Web Audio API (Zero External Files) */
+    const SoundEngine = {
+      ctx: null,
+      enabled: true,
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+      },
+      play(type = 'buy') {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        const now = this.ctx.currentTime;
+        if (type === 'buy') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(440, now); // A4
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        } else {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(600, now);
+          osc.frequency.exponentialRampToValueAtTime(260, now + 0.2);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        }
+      }
+    };
+
+    // Supported Cryptocurrencies Catalog
+    const ASSET_CATALOG = {
+      'BTCUSDT': { name: 'BTC/USDT', icon: 'bitcoin', base: 67420, precision: 2, vol: 0.003 },
+      'ETHUSDT': { name: 'ETH/USDT', icon: 'ethereum', base: 3520, precision: 2, vol: 0.004 },
+      'SOLUSDT': { name: 'SOL/USDT', icon: 'sun', base: 168.5, precision: 2, vol: 0.0055 },
+      'BNBUSDT': { name: 'BNB/USDT', icon: 'cube', base: 585, precision: 2, vol: 0.0035 },
+      'DOGEUSDT': { name: 'DOGE/USDT', icon: 'paw', base: 0.128, precision: 4, vol: 0.0065 },
+      'XRPUSDT': { name: 'XRP/USDT', icon: 'bolt', base: 0.585, precision: 4, vol: 0.0045 }
+    };
+
+    // State
+    let activeSymbol = 'BTCUSDT';
+    let activeTimeframe = '1m';
+    let chartMode = 'candle'; // 'candle' or 'line'
+    let candleData = [];
+    let signalHistory = [];
+    let currentSignal = null;
+    let canvas, ctx;
+
+    // Build synthetic baseline candles
+    function generateSyntheticHistory(count = 55) {
+      candleData = [];
+      const asset = ASSET_CATALOG[activeSymbol];
+      let price = asset.base * (1 + (Math.random() - 0.5) * 0.03);
+      let time = Date.now() - count * 60000;
+
+      for (let i = 0; i < count; i++) {
+        const delta = (Math.random() - 0.495) * asset.vol * price;
+        const open = price;
+        const close = open + delta;
+        const spread = Math.abs(close - open) + (open * asset.vol * 0.35);
+        const high = Math.max(open, close) + Math.random() * spread;
+        const low = Math.min(open, close) - Math.random() * spread;
+        const volume = Math.floor(Math.random() * 500) + 50;
+
+        candleData.push({ time, open, high, low, close, volume });
+        price = close;
+        time += 60000;
+      }
+    }
+
+    // Mathematical Indicators
+    function calcEMA(data, period) {
+      const k = 2 / (period + 1);
+      const emaArr = [];
+      let prevEma = data[0].close;
+      for (let i = 0; i < data.length; i++) {
+        const val = data[i].close;
+        const currentEma = (val * k) + (prevEma * (1 - k));
+        emaArr.push(currentEma);
+        prevEma = currentEma;
+      }
+      return emaArr;
+    }
+
+    function calcRSI(data, period = 14) {
+      if (data.length <= period) return 50;
+      let gains = 0, losses = 0;
+      for (let i = 1; i <= period; i++) {
+        const diff = data[i].close - data[i - 1].close;
+        if (diff >= 0) gains += diff;
+        else losses += Math.abs(diff);
+      }
+      let avgGain = gains / period;
+      let avgLoss = losses / period;
+
+      for (let i = period + 1; i < data.length; i++) {
+        const diff = data[i].close - data[i - 1].close;
+        if (diff >= 0) {
+          avgGain = (avgGain * (period - 1) + diff) / period;
+          avgLoss = (avgLoss * (period - 1)) / period;
+        } else {
+          avgGain = (avgGain * (period - 1)) / period;
+          avgLoss = (avgLoss * (period - 1) + Math.abs(diff)) / period;
+        }
+      }
+      if (avgLoss === 0) return 100;
+      const rs = avgGain / avgLoss;
+      return 100 - (100 / (1 + rs));
+    }
+
+    function calcATR(data, period = 14) {
+      if (data.length < period) return 0;
+      let trSum = 0;
+      for (let i = data.length - period; i < data.length; i++) {
+        const cur = data[i];
+        const prev = data[i - 1] || cur;
+        const tr = Math.max(cur.high - cur.low, Math.abs(cur.high - prev.close), Math.abs(cur.low - prev.close));
+        trSum += tr;
+      }
+      return trSum / period;
+    }
+
+    // Quantitative Engine
+    function evaluateSignal() {
+      if (candleData.length < 25) return;
+      const rsi = calcRSI(candleData, 14);
+      const emaFast = calcEMA(candleData, 10);
+      const emaSlow = calcEMA(candleData, 25);
+      const atr = calcATR(candleData, 14);
+
+      const lastCandle = candleData[candleData.length - 1];
+      const close = lastCandle.close;
+      const fEma = emaFast[emaFast.length - 1];
+      const sEma = emaSlow[emaSlow.length - 1];
+      const prevFEma = emaFast[emaFast.length - 2];
+      const prevSEma = emaSlow[emaSlow.length - 2];
+
+      const macdHist = (fEma - sEma);
+
+      let score = 0;
+      let reasons = [];
+
+      // RSI Conditions
+      if (rsi < 32) {
+        score += 4;
+        reasons.push(`RSI Oversold (${rsi.toFixed(1)}) — Prime Reversal Zone`);
+      } else if (rsi > 68) {
+        score -= 4;
+        reasons.push(`RSI Overbought (${rsi.toFixed(1)}) — Exhaustion Risk`);
+      } else if (rsi > 50) {
+        score += 1;
+      } else {
+        score -= 1;
+      }
+
+      // EMA Crossover Conditions
+      if (fEma > sEma) {
+        score += 3;
+        if (prevFEma <= prevSEma) {
+          score += 3;
+          reasons.push("Fresh Golden Cross (EMA 10 crossed above 25)");
+        } else {
+          reasons.push("Bullish trend supported above 25 EMA");
+        }
+      } else {
+        score -= 3;
+        if (prevFEma >= prevSEma) {
+          score -= 3;
+          reasons.push("Fresh Death Cross (EMA 10 crossed below 25)");
+        } else {
+          reasons.push("Bearish pressure holding below 25 EMA");
+        }
+      }
+
+      // MACD Histogram
+      if (macdHist > 0) {
+        score += 2;
+        reasons.push("Positive MACD momentum histogram expanding");
+      } else {
+        score -= 2;
+        reasons.push("Negative MACD momentum expanding downward");
+      }
+
+      // Derive Signal Type
+      let type = 'NEUTRAL';
+      let confidence = Math.min(Math.round(52 + Math.abs(score) * 4.8), 96);
+
+      if (score >= 5) {
+        type = score >= 7 ? 'STRONG BUY' : 'BUY';
+      } else if (score <= -5) {
+        type = score <= -7 ? 'STRONG SELL' : 'SELL';
+      }
+
+      // Calculate Target Zones
+      const riskBuffer = atr > 0 ? atr * 1.5 : close * 0.012;
+      let sl, tp1, tp2;
+
+      if (type.includes('BUY')) {
+        sl = close - riskBuffer;
+        tp1 = close + (riskBuffer * 1.8);
+        tp2 = close + (riskBuffer * 3.2);
+      } else if (type.includes('SELL')) {
+        sl = close + riskBuffer;
+        tp1 = close - (riskBuffer * 1.8);
+        tp2 = close - (riskBuffer * 3.2);
+      } else {
+        sl = close * 0.985;
+        tp1 = close * 1.015;
+        tp2 = close * 1.03;
+      }
+
+      const riskAmt = Math.abs(close - sl);
+      const rewardAmt = Math.abs(tp1 - close);
+      const rr = (rewardAmt / (riskAmt || 1)).toFixed(2);
+
+      const oldSignalType = currentSignal ? currentSignal.type : null;
+
+      currentSignal = {
+        type,
+        confidence,
+        entry: close,
+        sl,
+        tp1,
+        tp2,
+        rr: `1 : ${rr}`,
+        rsi: rsi.toFixed(1),
+        macd: macdHist > 0 ? `+${macdHist.toFixed(2)}` : macdHist.toFixed(2),
+        atrPct: ((atr / close) * 100).toFixed(2),
+        reasons: reasons.slice(0, 2)
+      };
+
+      if (oldSignalType && oldSignalType !== type && (type.includes('BUY') || type.includes('SELL'))) {
+        pushSignalLog(currentSignal);
+        showToast(currentSignal);
+        SoundEngine.play(type.includes('BUY') ? 'buy' : 'sell');
+      }
+    }
+
+    // Format currency based on current asset
+    function fmtPrice(val) {
+      const prec = ASSET_CATALOG[activeSymbol].precision;
+      return '$' + val.toLocaleString('en-US', { minimumFractionDigits: prec, maximumFractionDigits: prec });
+    }
+
+    function updateDOM() {
+      if (!currentSignal || candleData.length === 0) return;
+      const last = candleData[candleData.length - 1];
+      const first = candleData[0];
+      const changePct = ((last.close - first.open) / first.open) * 100;
+      const isUp = changePct >= 0;
+
+      // Update Live Price & Delta
+      const priceEl = document.getElementById('livePriceDisplay');
+      priceEl.textContent = fmtPrice(last.close);
+      priceEl.className = `text-2xl sm:text-3xl font-black font-mono tracking-tight ${isUp ? 'text-bull' : 'text-bear'}`;
+
+      const deltaEl = document.getElementById('priceDeltaBadge');
+      deltaEl.textContent = `${isUp ? '+' : ''}${changePct.toFixed(2)}%`;
+      deltaEl.className = `text-xs font-mono font-bold px-2 py-0.5 rounded border ${isUp ? 'bg-bull-soft text-bull border-bull/20' : 'bg-bear-soft text-bear border-bear/20'}`;
+
+      // Canvas Header Stats
+      document.getElementById('barOpen').textContent = fmtPrice(last.open);
+      document.getElementById('barHigh').textContent = fmtPrice(last.high);
+      document.getElementById('barLow').textContent = fmtPrice(last.low);
+      document.getElementById('barClose').textContent = fmtPrice(last.close);
+
+      // High / Low 24H
+      const highs = candleData.map(c => c.high);
+      const lows = candleData.map(c => c.low);
+      document.getElementById('statHigh24').textContent = fmtPrice(Math.max(...highs));
+      document.getElementById('statLow24').textContent = fmtPrice(Math.min(...lows));
+
+      // Main Signal Card
+      const box = document.getElementById('mainSignalBox');
+      const banner = document.getElementById('signalBanner');
+      const confScore = document.getElementById('confidencePercentage');
+      const confBar = document.getElementById('confidenceBar');
+
+      const isBullish = currentSignal.type.includes('BUY');
+      const isBearish = currentSignal.type.includes('SELL');
+
+      if (isBullish) {
+        box.className = 'bg-brand-panel border border-bull/40 rounded-2xl p-4 sm:p-5 neon-border-bull transition-all duration-300 relative overflow-hidden';
+        banner.className = 'text-3xl sm:text-4xl font-black font-mono tracking-tight text-bull flex items-center justify-center gap-2';
+        banner.innerHTML = `<i class="fa-solid fa-circle-arrow-up"></i> ${currentSignal.type}`;
+        confScore.className = 'font-extrabold text-bull text-sm';
+        confBar.className = 'h-full bg-gradient-to-r from-bull to-brand-accent transition-all duration-500 rounded-full';
+      } else if (isBearish) {
+        box.className = 'bg-brand-panel border border-bear/40 rounded-2xl p-4 sm:p-5 neon-border-bear transition-all duration-300 relative overflow-hidden';
+        banner.className = 'text-3xl sm:text-4xl font-black font-mono tracking-tight text-bear flex items-center justify-center gap-2';
+        banner.innerHTML = `<i class="fa-solid fa-circle-arrow-down"></i> ${currentSignal.type}`;
+        confScore.className = 'font-extrabold text-bear text-sm';
+        confBar.className = 'h-full bg-gradient-to-r from-bear to-orange-500 transition-all duration-500 rounded-full';
+      } else {
+        box.className = 'bg-brand-panel border border-brand-border rounded-2xl p-4 sm:p-5 transition-all duration-300 relative overflow-hidden';
+        banner.className = 'text-3xl sm:text-4xl font-black font-mono tracking-tight text-gray-400 flex items-center justify-center gap-2';
+        banner.innerHTML = `<i class="fa-solid fa-minus"></i> ${currentSignal.type}`;
+        confScore.className = 'font-extrabold text-gray-300 text-sm';
+        confBar.className = 'h-full bg-gray-600 transition-all duration-500 rounded-full';
+      }
+
+      confScore.textContent = `${currentSignal.confidence}%`;
+      confBar.style.width = `${currentSignal.confidence}%`;
+
+      // Targets
+      document.getElementById('entryTargetVal').textContent = fmtPrice(currentSignal.entry);
+      document.getElementById('slTargetVal').textContent = fmtPrice(currentSignal.sl);
+      document.getElementById('tp1TargetVal').textContent = fmtPrice(currentSignal.tp1);
+      document.getElementById('tp2TargetVal').textContent = fmtPrice(currentSignal.tp2);
+      document.getElementById('rrRatioVal').textContent = currentSignal.rr;
+
+      // Indicators Grid
+      document.getElementById('rsiNum').textContent = currentSignal.rsi;
+      const rsiVal = parseFloat(currentSignal.rsi);
+      const rsiBadge = document.getElementById('rsiPill');
+      if (rsiVal < 32) {
+        rsiBadge.textContent = 'Oversold';
+        rsiBadge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-bull-soft text-bull border border-bull/20 font-bold';
+      } else if (rsiVal > 68) {
+        rsiBadge.textContent = 'Overbought';
+        rsiBadge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-bear-soft text-bear border border-bear/20 font-bold';
+      } else {
+        rsiBadge.textContent = 'Neutral';
+        rsiBadge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-400 border border-brand-border';
+      }
+
+      const macdEl = document.getElementById('macdNum');
+      macdEl.textContent = currentSignal.macd;
+      macdEl.className = currentSignal.macd.startsWith('+') ? 'font-bold text-bull' : 'font-bold text-bear';
+      document.getElementById('atrVal').textContent = `${currentSignal.atrPct}%`;
+
+      // Explanations
+      if (currentSignal.reasons.length > 0) {
+        document.getElementById('reason1').textContent = currentSignal.reasons[0] || 'Technical convergence aligned';
+        document.getElementById('reason2').textContent = currentSignal.reasons[1] || 'Volatility index in safe execution range';
+      }
+    }
+
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      const rect = container.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+    }
+
+    function renderChart() {
+      if (!ctx || candleData.length === 0) return;
+      const container = canvas.parentElement;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw Grid Lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.lineWidth = 1;
+      for (let y = 30; y < height; y += 45) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      for (let x = 40; x < width; x += 65) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+
+      // Min/Max Price calculation
+      let minP = Math.min(...candleData.map(c => c.low));
+      let maxP = Math.max(...candleData.map(c => c.high));
+      const pad = (maxP - minP) * 0.12 || 1;
+      minP -= pad;
+      maxP += pad;
+
+      const toY = (val) => height - 20 - ((val - minP) / (maxP - minP)) * (height - 40);
+
+      const count = candleData.length;
+      const step = width / count;
+      const bodyWidth = Math.max(step * 0.65, 3);
+
+      // Render EMAs
+      const fast = calcEMA(candleData, 10);
+      const slow = calcEMA(candleData, 25);
+
+      // Slow EMA (Blue)
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let i = 0; i < count; i++) {
+        const x = i * step + step / 2;
+        const y = toY(slow[i]);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Fast EMA (Yellow)
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let i = 0; i < count; i++) {
+        const x = i * step + step / 2;
+        const y = toY(fast[i]);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Render Candlesticks or Area Line
+      if (chartMode === 'candle') {
+        for (let i = 0; i < count; i++) {
+          const c = candleData[i];
+          const x = i * step + step / 2;
+          const openY = toY(c.open);
+          const closeY = toY(c.close);
+          const highY = toY(c.high);
+          const lowY = toY(c.low);
+          const isUp = c.close >= c.open;
+
+          const color = isUp ? '#00e676' : '#ff3366';
+          ctx.strokeStyle = color;
+          ctx.fillStyle = color;
+
+          // Wick
+          ctx.beginPath();
+          ctx.moveTo(x, highY);
+          ctx.lineTo(x, lowY);
+          ctx.stroke();
+
+          // Body
+          const top = Math.min(openY, closeY);
+          const h = Math.max(Math.abs(closeY - openY), 1.5);
+          ctx.fillRect(x - bodyWidth / 2, top, bodyWidth, h);
+
+          // Buy/Sell inflection markers on selected candles
+          if (i > 12 && i % 14 === 0) {
+            ctx.fillStyle = isUp ? '#00e676' : '#ff3366';
+            ctx.font = '10px monospace';
+            ctx.textAlign = 'center';
+            if (isUp) {
+              ctx.fillText('▲', x, lowY + 12);
+            } else {
+              ctx.fillText('▼', x, highY - 4);
+            }
+          }
+        }
+      } else {
+        // Area Line Mode
+        const grad = ctx.createLinearGradient(0, 0, 0, height);
+        grad.addColorStop(0, 'rgba(0, 230, 118, 0.28)');
+        grad.addColorStop(1, 'rgba(0, 230, 118, 0.0)');
+
+        ctx.beginPath();
+        for (let i = 0; i < count; i++) {
+          const x = i * step + step / 2;
+          const y = toY(candleData[i].close);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = '#00e676';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.lineTo((count - 1) * step + step / 2, height);
+        ctx.lineTo(step / 2, height);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+      }
+
+      // Live Price Tracker Dash Line
+      const currentPrice = candleData[candleData.length - 1].close;
+      const trackY = toY(currentPrice);
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = currentPrice >= candleData[0].open ? '#00e676' : '#ff3366';
+      ctx.beginPath();
+      ctx.moveTo(0, trackY);
+      ctx.lineTo(width, trackY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Historical Logging
+    function pushSignalLog(sig) {
+      const log = {
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        pair: ASSET_CATALOG[activeSymbol].name,
+        type: sig.type,
+        entry: fmtPrice(sig.entry),
+        sl: fmtPrice(sig.sl),
+        tp: fmtPrice(sig.tp1),
+        status: 'FILLED'
+      };
+      signalHistory.unshift(log);
+      if (signalHistory.length > 20) signalHistory.pop();
+      renderLogs();
+    }
+
+    function renderLogs() {
+      const tbody = document.getElementById('signalLogTbody');
+      tbody.innerHTML = '';
+      signalHistory.forEach(item => {
+        const isBuy = item.type.includes('BUY');
+        const isSell = item.type.includes('SELL');
+        const badge = isBuy 
+          ? 'bg-bull-soft text-bull border-bull/20' 
+          : isSell 
+            ? 'bg-bear-soft text-bear border-bear/20' 
+            : 'bg-white/5 text-gray-300 border-brand-border';
+
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-brand-card transition';
+        row.innerHTML = `
+          <td class="p-2 text-gray-400">${item.time}</td>
+          <td class="p-2 font-bold text-white">${item.pair}</td>
+          <td class="p-2"><span class="px-2 py-0.5 rounded border text-[10px] font-bold ${badge}">${item.type}</span></td>
+          <td class="p-2">${item.entry}</td>
+          <td class="p-2 text-bear">${item.sl}</td>
+          <td class="p-2 text-bull">${item.tp}</td>
+          <td class="p-2 text-brand-accent font-semibold">${item.status}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function showToast(sig) {
+      const toast = document.getElementById('toastNotification');
+      document.getElementById('toastHeader').textContent = `${sig.type} - ${ASSET_CATALOG[activeSymbol].name}`;
+      document.getElementById('toastBody').textContent = `Target Entry: ${fmtPrice(sig.entry)} | SL: ${fmtPrice(sig.sl)}`;
+      
+      const iconBox = document.getElementById('toastIconBox');
+      if (sig.type.includes('BUY')) {
+        iconBox.className = 'w-8 h-8 rounded-lg bg-bull/20 text-bull flex items-center justify-center font-bold';
+        iconBox.innerHTML = '<i class="fa-solid fa-arrow-trend-up"></i>';
+      } else {
+        iconBox.className = 'w-8 h-8 rounded-lg bg-bear/20 text-bear flex items-center justify-center font-bold';
+        iconBox.innerHTML = '<i class="fa-solid fa-arrow-trend-down"></i>';
+      }
+
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      setTimeout(() => toast.classList.add('translate-y-24', 'opacity-0'), 3500);
+    }
+
+    // Tick simulation & live update loop
+    function onPriceTick() {
+      if (candleData.length === 0) return;
+      const last = candleData[candleData.length - 1];
+      const asset = ASSET_CATALOG[activeSymbol];
+      const delta = (Math.random() - 0.492) * asset.vol * last.close * 0.4;
+      
+      const newClose = last.close + delta;
+      last.close = newClose;
+      if (newClose > last.high) last.high = newClose;
+      if (newClose < last.low) last.low = newClose;
+      last.volume += Math.floor(Math.random() * 4);
+
+      // Append new candle periodically
+      if (Math.random() < 0.12) {
+        candleData.shift();
+        candleData.push({
+          time: Date.now(),
+          open: newClose,
+          high: newClose,
+          low: newClose,
+          close: newClose,
+          volume: 12
+        });
+      }
+
+      evaluateSignal();
+      updateDOM();
+      renderChart();
+    }
+
+    // Top horizontal marquee ticker builder
+    function setupTopTicker() {
+      const track = document.getElementById('topTickerTrack');
+      track.innerHTML = '';
+      Object.keys(ASSET_CATALOG).forEach(key => {
+        const item = ASSET_CATALOG[key];
+        const chip = document.createElement('div');
+        chip.className = 'inline-flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition font-mono';
+        chip.onclick = () => {
+          document.getElementById('coinSelect').value = key;
+          switchSymbol(key);
+        };
+        chip.innerHTML = `
+          <span class="font-bold text-white">${item.name.split('/')[0]}</span>
+          <span class="text-gray-300">${fmtPrice(item.base)}</span>
+          <span class="text-bull text-[10px]">+${(Math.random() * 3.5 + 0.5).toFixed(1)}%</span>
+        `;
+        track.appendChild(chip);
+      });
+    }
+
+    function switchSymbol(symbol) {
+      activeSymbol = symbol;
+      document.getElementById('pairHeading').textContent = ASSET_CATALOG[symbol].name;
+      generateSyntheticHistory(55);
+      evaluateSignal();
+      updateDOM();
+      renderChart();
+    }
+
+    // Initializer and Listeners
+    window.addEventListener('DOMContentLoaded', () => {
+      canvas = document.getElementById('tradingCanvas');
+      ctx = canvas.getContext('2d');
+
+      setupTopTicker();
+      resizeCanvas();
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        renderChart();
+      });
+
+      // Coin selector change
+      document.getElementById('coinSelect').addEventListener('change', (e) => {
+        switchSymbol(e.target.value);
+      });
+
+      // Timeframe buttons
+      document.querySelectorAll('.tf-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.tf-btn').forEach(b => {
+            b.className = 'tf-btn px-2 py-1 rounded text-gray-400 hover:text-white';
+          });
+          this.className = 'tf-btn px-2 py-1 rounded bg-bull text-black font-bold';
+          activeTimeframe = this.getAttribute('data-tf');
+          document.getElementById('activeTfBadge').textContent = `TF: ${activeTimeframe}`;
+          generateSyntheticHistory(55);
+          evaluateSignal();
+          updateDOM();
+          renderChart();
+        });
+      });
+
+      // Chart Mode Toggle (Candles vs Area Line)
+      document.getElementById('chartStyleToggle').addEventListener('click', () => {
+        chartMode = chartMode === 'candle' ? 'line' : 'candle';
+        document.getElementById('chartTypeTitle').textContent = chartMode === 'candle' ? 'Candles' : 'Area Line';
+        renderChart();
+      });
+
+      // Manual Scan Button
+      document.getElementById('forceScanBtn').addEventListener('click', () => {
+        onPriceTick();
+        showToast(currentSignal);
+      });
+
+      // Sound button
+      const soundBtn = document.getElementById('soundToggleBtn');
+      soundBtn.addEventListener('click', () => {
+        SoundEngine.enabled = !SoundEngine.enabled;
+        soundBtn.innerHTML = SoundEngine.enabled 
+          ? '<i class="fa-solid fa-volume-high text-xs text-bull"></i>' 
+          : '<i class="fa-solid fa-volume-xmark text-xs text-gray-500"></i>';
+      });
+
+      // Clear logs
+      document.getElementById('clearLogsButton').addEventListener('click', () => {
+        signalHistory = [];
+        renderLogs();
+      });
+
+      // Initial Seed
+      generateSyntheticHistory(55);
+      evaluateSignal();
+      updateDOM();
+      renderChart();
+
+      // Seed initial sample log
+      pushSignalLog({
+        type: 'STRONG BUY',
+        entry: ASSET_CATALOG[activeSymbol].base * 0.995,
+        sl: ASSET_CATALOG[activeSymbol].base * 0.985,
+        tp1: ASSET_CATALOG[activeSymbol].base * 1.018
+      });
+
+      // Live realtime ticks every 1.5 seconds
+      setInterval(onPriceTick, 1500);
+    });
+  </script>
+</body>
+</html>
+```
